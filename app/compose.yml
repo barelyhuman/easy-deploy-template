@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.app.rule=Host(`127.0.0.1`)
+      - traefik.http.services.app.loadbalancer.healthcheck.path=/healthz
+      - traefik.http.services.app.loadbalancer.server.port=3000
+      - "traefik.http.middlewares.test-retry.retry.attempts=5"
+      - "traefik.http.middlewares.test-retry.retry.initialinterval=200ms"
+    networks:
+      - proxy
+      - internal
+    env_file:
+      - .env
+    deploy:
+      mode: replicated
+      replicas: 3
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        delay: 5s
+    restart: always
+
+  pg:
+    image: postgres:13-alpine
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - internal
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - 8000:8080
+    links:
+      - pg
+    depends_on:
+      - pg
+    networks:
+      - internal
+
+networks:
+  internal:
+    external: false
+  proxy:
+    external: true
+    driver: bridge
+    name: proxy

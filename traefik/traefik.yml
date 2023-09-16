@@ -1,0 +1,9 @@
+providers:
+  docker:
+    watch: true
+    exposedByDefault: false
+    network: "proxy"
+    endpoint: "unix:///var/run/docker.sock"
+
+api:
+  insecure: true
